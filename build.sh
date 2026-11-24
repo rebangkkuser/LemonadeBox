@@ -15,16 +15,13 @@ echo "Building BusyBox..."
 
 cd external/busybox
 make defconfig
-scripts/config -e STATIC
+scripts/kconfig/conf --enable STATIC Config.in
 echo "Setting up wget and sha256sum on busybox config..."
-scripts/config -e WGET
-scripts/config -e FEATURE_WGET_HTTPS
-scripts/config -e FEATURE_WGET_TIMEOUT
-scripts/config -e SHA256SUM
-scripts/config -e TAR
-scripts/config -e XZ
+scripts/kconfig/conf --enable WGET Config.in
+scripts/kconfig/conf --enable FEATURE_WGET_HTTPS Config.in
+scripts/kconfig/conf --enable FEATURE_WGET_TIMEOUT Config.in
 echo "Disabling tc because Linux 6.8 removed CBQ"
-scripts/config -d TC
+scripts/kconfig/conf --disable TC Config.in
 grep -q '^CONFIG_STATIC=y' .config || {
     echo "Static binary not enabled!"
     exit 1

@@ -45,6 +45,35 @@ grep -q '^CONFIG_STATIC=y' .config || {
 make oldconfig
 make -j$(nproc)
 
+echo "Building OpenSSL..."
+
+OPENSSL_ARCH="${OPENSSL_ARCH:-linux-aarch64}"
+OPENSSL_PREFIX="$PWD/external/openssl/install"
+
+cd external/openssl
+
+echo "Target architecture: $OPENSSL_ARCH"
+
+./Configure "$OPENSSL_ARCH" \
+    no-shared \
+    no-tests \
+    --prefix="$OPENSSL_PREFIX"
+
+make -j8
+make install_sw
+
+cd ../..
+
+echo "Installing OpenSSL into LemonadeBox..."
+
+mkdir -p lemonade/{bin,lib,include}
+
+cp external/openssl/install/bin/openssl lemonade/bin/
+cp external/openssl/install/lib/*.a lemonade/lib/
+cp -r external/openssl/install/include/openssl lemonade/include/
+
+echo "OpenSSL completed!"
+
 echo "Making rootfs dir on lemonade/..."
 cd ../..
 mkdir -p lemonade

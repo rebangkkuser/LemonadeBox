@@ -50,6 +50,7 @@ echo "Building OpenSSL..."
 OPENSSL_ARCH="${OPENSSL_ARCH:-linux-aarch64}"
 OPENSSL_PREFIX="$PWD/external/openssl/install"
 
+cd ../..
 cd external/openssl
 
 echo "Target architecture: $OPENSSL_ARCH"

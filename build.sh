@@ -1,3 +1,4 @@
+
 #!/bin/bash
 set -euo pipefail
 
@@ -82,7 +83,11 @@ cp "$ROOT_DIR/external/busybox/busybox" "$ROOTFS/bin/busybox"
 
 (
     cd "$ROOTFS/bin"
-    ./busybox --install -s
+
+    ./busybox --list | while IFS= read -r applet; do
+        [ "$applet" = "busybox" ] && continue
+        ln -sf busybox "$applet"
+    done
 )
 
 echo "BusyBox applets installed!"

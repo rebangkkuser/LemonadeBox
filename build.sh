@@ -34,6 +34,7 @@ set_config STATIC y
 set_config WGET y
 set_config FEATURE_WGET_HTTPS y
 set_config FEATURE_WGET_TIMEOUT y
+set_config SHA1_HWACCEL n
 
 echo "Disabling TC..."
 set_config TC n

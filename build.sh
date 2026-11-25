@@ -74,7 +74,6 @@ cp -r external/openssl/install/include/openssl lemonade/include/
 echo "OpenSSL completed!"
 
 echo "Making rootfs dir on lemonade/..."
-cd ../..
 mkdir -p lemonade
 mkdir -p lemonade/bin
 mkdir -p lemonade/lib

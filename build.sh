@@ -1,19 +1,21 @@
 #!/bin/bash
-
 set -euo pipefail
 
-echo "Settuping BusyBox variables..."
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOTFS="$ROOT_DIR/lemonade"
+
+echo "Setting up BusyBox variables..."
 export BB_EXTRA_VERSION="-LemonadeBox-0.1"
 
 echo "Verifying kernel..."
-if [ ! $(uname -s) = Linux ]; then
-	echo "Kernel is not Linux! Refusing to compile."
-	exit 1
+if [ "$(uname -s)" != "Linux" ]; then
+    echo "Kernel is not Linux! Refusing to compile."
+    exit 1
 fi
 
 echo "Building BusyBox..."
+cd "$ROOT_DIR/external/busybox"
 
-cd external/busybox
 make defconfig
 
 echo "Configuring BusyBox..."
@@ -35,22 +37,23 @@ set_config WGET y
 set_config FEATURE_WGET_HTTPS y
 set_config FEATURE_WGET_TIMEOUT y
 set_config SHA1_HWACCEL n
-
-echo "Disabling TC..."
 set_config TC n
+
 grep -q '^CONFIG_STATIC=y' .config || {
     echo "Static binary not enabled!"
     exit 1
 }
+
 make oldconfig
-make -j$(nproc)
+make -j"$(nproc)"
 
 echo "Building OpenSSL..."
 
 OPENSSL_ARCH="${OPENSSL_ARCH:-linux-aarch64}"
 
-cd ../openssl
+cd "$ROOT_DIR/external/openssl"
 OPENSSL_PREFIX="$PWD/install"
+
 echo "Target architecture: $OPENSSL_ARCH"
 
 ./Configure "$OPENSSL_ARCH" \
@@ -61,35 +64,32 @@ echo "Target architecture: $OPENSSL_ARCH"
 make -j"$(nproc)"
 make install_sw
 
-cd ../..
+echo "Creating LemonadeBox rootfs..."
 
-echo "Installing OpenSSL into LemonadeBox..."
+mkdir -p "$ROOTFS"/{bin,lib,include,tmp,root,etc,dev,proc,sys}
 
-mkdir -p lemonade/{bin,lib,include}
+echo "Installing OpenSSL..."
 
-cp external/openssl/install/bin/openssl lemonade/bin/
-cp external/openssl/install/lib/*.a lemonade/lib/
-cp -r external/openssl/install/include/openssl lemonade/include/
+cp "$OPENSSL_PREFIX/bin/openssl" "$ROOTFS/bin/"
+cp "$OPENSSL_PREFIX"/lib/*.a "$ROOTFS/lib/"
+cp -r "$OPENSSL_PREFIX/include/openssl" "$ROOTFS/include/"
 
 echo "OpenSSL completed!"
 
-echo "Making rootfs dir on lemonade/..."
-mkdir -p lemonade
-mkdir -p lemonade/bin
-mkdir -p lemonade/lib
-mkdir -p lemonade/tmp
-mkdir -p lemonade/root
-mkdir -p lemonade/etc
-cp external/busybox/busybox lemonade/bin/busybox
+echo "Installing BusyBox..."
 
-echo "Installing BusyBox binaries..."
-echo "Not cross compilling, so, using QEMU not needed"
-cd lemonade/bin
-./busybox --install -s .
-cd ../..
+cp "$ROOT_DIR/external/busybox/busybox" "$ROOTFS/bin/busybox"
 
-echo "Putting os-release on rootfs"
-cat << EOF >lemonade/etc/os-release
+(
+    cd "$ROOTFS/bin"
+    ./busybox --install -s
+)
+
+echo "BusyBox applets installed!"
+
+echo "Putting os-release on rootfs..."
+
+cat > "$ROOTFS/etc/os-release" <<EOF
 NAME="LemonadeBox"
 PRETTY_NAME="LemonadeBox 0.1"
 ID=lemonadebox
@@ -102,25 +102,29 @@ SUPPORT_URL="https://github.com/rebangkkuser/LemonadeBox/issues"
 BUG_REPORT_URL="https://github.com/rebangkkuser/LemonadeBox/issues"
 LOGO=lemonadebox
 EOF
-echo "Adding shadow, group and passwd"
-cat << EOF > lemonade/etc/passwd
+
+echo "Adding shadow, group and passwd..."
+
+cat > "$ROOTFS/etc/passwd" <<EOF
 root:x:0:0:root:/root:/bin/sh
 nobody:x:65534:65534:nobody:/nonexistent:/bin/false
 EOF
 
-cat << EOF > lemonade/etc/group
+cat > "$ROOTFS/etc/group" <<EOF
 root:x:0:
 nogroup:x:65534:
 EOF
 
-cat << EOF > lemonade/etc/shadow
+cat > "$ROOTFS/etc/shadow" <<EOF
 root:x:0:
-nogroup:x:65534:
 EOF
 
-chmod 600 lemonade/etc/shadow
+chmod 600 "$ROOTFS/etc/shadow"
 
 echo "Compressing rootfs..."
-tar -cJf lemonadebox.tar.xz -C . lemonade/
+
+tar -cJf "$ROOT_DIR/lemonadebox.tar.xz" \
+    -C "$ROOT_DIR" lemonade/
+
 echo "Done!"
-exit
+exit 0

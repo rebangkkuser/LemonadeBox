@@ -15,13 +15,28 @@ echo "Building BusyBox..."
 
 cd external/busybox
 make defconfig
-scripts/kconfig/conf --enable STATIC Config.in
-echo "Setting up wget and sha256sum on busybox config..."
-scripts/kconfig/conf --enable WGET Config.in
-scripts/kconfig/conf --enable FEATURE_WGET_HTTPS Config.in
-scripts/kconfig/conf --enable FEATURE_WGET_TIMEOUT Config.in
-echo "Disabling tc because Linux 6.8 removed CBQ"
-scripts/kconfig/conf --disable TC Config.in
+
+echo "Configuring BusyBox..."
+
+set_config() {
+    local option="$1"
+    local value="$2"
+
+    if grep -q "^CONFIG_${option}=" .config; then
+        sed -i "s/^CONFIG_${option}=.*/CONFIG_${option}=${value}/" .config
+    else
+        sed -i "/^# CONFIG_${option} is not set/d" .config
+        echo "CONFIG_${option}=${value}" >> .config
+    fi
+}
+
+set_config STATIC y
+set_config WGET y
+set_config FEATURE_WGET_HTTPS y
+set_config FEATURE_WGET_TIMEOUT y
+
+echo "Disabling TC..."
+set_config TC n
 grep -q '^CONFIG_STATIC=y' .config || {
     echo "Static binary not enabled!"
     exit 1

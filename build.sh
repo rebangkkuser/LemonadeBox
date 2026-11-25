@@ -48,11 +48,9 @@ make -j$(nproc)
 echo "Building OpenSSL..."
 
 OPENSSL_ARCH="${OPENSSL_ARCH:-linux-aarch64}"
-OPENSSL_PREFIX="$PWD/external/openssl/install"
 
-cd ../..
-cd external/openssl
-
+cd ../openssl
+OPENSSL_PREFIX="$PWD/install"
 echo "Target architecture: $OPENSSL_ARCH"
 
 ./Configure "$OPENSSL_ARCH" \
@@ -60,7 +58,7 @@ echo "Target architecture: $OPENSSL_ARCH"
     no-tests \
     --prefix="$OPENSSL_PREFIX"
 
-make -j8
+make -j"$(nproc)"
 make install_sw
 
 cd ../..

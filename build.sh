@@ -41,7 +41,7 @@ grep -q '^CONFIG_STATIC=y' .config || {
     echo "Static binary not enabled!"
     exit 1
 }
-make olddefconfig
+make oldconfig
 make -j$(nproc)
 
 echo "Making rootfs dir on lemonade/..."
